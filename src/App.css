@@ -55,3 +55,22 @@ td{padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}
 .note.bad{border-left-color:var(--bad)}
 .note.ok{border-left-color:var(--ok)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+
+
+
+
+/* ---- Verified Seller admin ---- */
+.in{width:100%;border:1px solid var(--line);border-radius:var(--radius-md);padding:10px 12px;font:inherit;color:var(--ink);background:#fff;margin:6px 0 10px}
+.check{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+.check .tick{flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+.check.ok .tick{background:#D5EBDD;color:var(--ok)}
+.check.fail .tick{background:#F3D6D6;color:var(--bad)}
+.bar{display:inline-block;width:70px;height:8px;border-radius:4px;background:var(--line);vertical-align:middle;margin-right:6px;overflow:hidden}
+.bar i{display:block;height:8px;background:var(--gold)}
+.chip.gold{background:var(--gold);color:var(--navy)}
+.chip.tier-new{background:#E6E9F0;color:#434B5E}
+.chip.tier-building{background:#DCE4F2;color:#0B2447}
+.chip.tier-trusted{background:#D5EBDD;color:#1E6F45}
+.chip.tier-top{background:var(--navy);color:var(--gold-light)}
+code{font-size:12px;background:var(--soft);padding:1px 6px;border-radius:6px}

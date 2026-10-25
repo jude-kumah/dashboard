@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 // local server for development. On Render's static hosting, add it as an
 // environment variable BEFORE building, because Vite bakes it in at build time.
 const FROM_ENV = import.meta.env.VITE_API_URL;
-export const API_BASE_URL = (FROM_ENV || 'http://10.193.227.243:3000').replace(/\/+$/, '');
+export const API_BASE_URL = (FROM_ENV || 'http://localhost:3000').replace(/\/+$/, '');
 export const usingFallback = !FROM_ENV;
 
 export const socket = io(API_BASE_URL, {
@@ -22,7 +22,7 @@ async function call(path, method = 'GET', body) {
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-user': 'Bank Operator (bank)' },
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (e) {
@@ -41,6 +41,7 @@ export const api = {
   reportIssue: (id, reason) => call(`/api/orders/${id}/report`, 'POST', { reason }),
   fastForward: (id) => call(`/api/orders/${id}/fastforward`, 'POST'),
   resolveDispute: (id, outcome) => call(`/api/orders/${id}/resolve`, 'POST', { outcome }),
+  reviewVerification: (name, decision, note) => call(`/api/sellers/${encodeURIComponent(name)}/review`, 'POST', { decision, note }),
   reset: () => call('/api/reset', 'POST'),
 };
 

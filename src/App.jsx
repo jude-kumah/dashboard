@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as Engine from './escrowEngine.js';
+import * as Trust from './sellerTrust.js';
+import SellerAdmin from './SellerAdmin.jsx';
 import { socket, api, identify, API_BASE_URL, usingFallback } from './api.js';
 import './App.css';
 
 const RULE = {
   wait: 'Funds locked. The seller has 48 hours to send proof. Use "Fast-forward 72h" to simulate silence.',
-  fast: 'Strong evidence: verified rider confirmation. Recommended: release to seller.',
+  fast: 'Strong evidence: rider confirmation. Recommended: release to seller.',
   review: 'Photo evidence only (weakest). Review both sides before deciding.',
   esc: 'The seller did not respond in time. Recommended: refund the buyer.',
   done: 'Case closed.',
@@ -73,11 +75,12 @@ export default function App() {
   };
 
   const stats = Engine.computeStats(state);
+  const ts = Trust.trustStats(state);
   const disputes = state.orders.filter((o) => o.dispute);
   const selected =
     disputes.find((o) => o.id === selectedId) ||
     disputes.find((o) => o.dispute.st !== 'done') ||
-    disputes[0];
+    null;
   const canDecide = selected && ['fast', 'review', 'esc'].includes(selected.dispute.st);
   const devices = presence.filter((p) => p.role !== 'bank');
 
@@ -133,10 +136,13 @@ export default function App() {
 
         <div className="kpis">
           <div className="kpi hero"><span>Revenue (fees)</span><b>GH₵ {stats.revenue.toFixed(2)}</b></div>
-          <div className="kpi"><span>Held in SafePay</span><b>GH₵ {stats.escrowed.toFixed(2)}</b></div>
+          <div className="kpi"><span>Held in escrow</span><b>GH₵ {stats.escrowed.toFixed(2)}</b></div>
           <div className="kpi"><span>Payment volume</span><b>GH₵ {stats.gmv.toFixed(2)}</b></div>
           <div className="kpi"><span>Transactions</span><b>{stats.transactions}</b></div>
           <div className="kpi"><span>Open disputes</span><b>{stats.openDisputes}</b></div>
+          <div className="kpi"><span>Seller subscriptions</span><b>GH₵ {ts.subscriptions.toFixed(2)}</b></div>
+          <div className="kpi"><span>Verified sellers</span><b>{ts.verified}</b></div>
+          <div className="kpi"><span>Awaiting review</span><b>{ts.pending}</b></div>
         </div>
 
         <div className="grid2">
@@ -161,6 +167,9 @@ export default function App() {
                   <tbody>
                     <tr><td className="mut">Buyer claim</td><td>{selected.dispute.reason}</td></tr>
                     <tr><td className="mut">Delivery method</td><td>{Engine.METHODS[selected.method]}</td></tr>
+                    {selected.riderCheck && (
+                      <tr><td className="mut">Rider (iCOLMS-GH)</td><td>{selected.riderCheck.name} · {selected.riderCheck.plate}<br /><span className="mut">Licence {selected.riderCheck.licenceNo}, verified {new Date(selected.riderCheck.verifiedAt).toLocaleString()}</span></td></tr>
+                    )}
                     <tr><td className="mut">Seller evidence</td><td>{selected.dispute.proof === 'rider' ? 'Rider confirmation' : selected.dispute.proof === 'photo' ? 'Photo' : 'None yet'}</td></tr>
                     <tr><td className="mut">Amount in escrow</td><td>GH₵ {selected.amt}</td></tr>
                   </tbody>
@@ -185,6 +194,8 @@ export default function App() {
             )}
           </div>
         </div>
+
+        <SellerAdmin state={state} run={run} busy={busy} />
 
         <div className="card">
           <h2>Live transactions</h2>

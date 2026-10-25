@@ -11,7 +11,7 @@ export class EngineError extends Error {
 }
 
 export const METHODS = {
-  courier: 'Verified rider',
+  courier: 'Rider delivery',
   self: 'Delivery PIN',
   photo: 'Photo handoff',
 };
@@ -52,7 +52,9 @@ export function createInitialState() {
       {
         id: 'TX-1002', item: 'Bluetooth speaker', amt: 340, fee: 5.1,
         method: 'courier', status: 'escrow',
-        buyer: 'Kwame Boateng', seller: "Ama's Thrift", rider: 'Yaw N. (iCOLMS-GH)',
+        buyer: 'Kwame Boateng', seller: "Ama's Thrift",
+        rider: 'Yaw Nkrumah (iCOLMS-GH)', riderId: 'GH-DL-2021-004521',
+        riderCheck: { verifiedAt: new Date().toISOString(), licenceNo: 'GH-DL-2021-004521', name: 'Yaw Nkrumah', plate: 'GR 4521-22', vehicle: 'Honda Ace 125', expires: '2028-05-11', company: 'Swift Riders Accra', source: 'iCOLMS-GH (simulation)' },
       },
     ],
     ledger: [],
@@ -95,9 +97,32 @@ export function createOrder(state, { item, amt, method, buyer, seller = null }) 
     id: nextId(), item: name, amt: rounded, fee: +(rounded * FEE_RATE).toFixed(2),
     method, status: 'escrow', buyer: buyer.trim(), seller: seller ? String(seller).trim() : null,
     ...(method === 'self' ? { pin: String(Math.floor(1000 + Math.random() * 9000)) } : {}),
-    ...(method === 'courier' ? { rider: 'Yaw N. (iCOLMS-GH)' } : {}),
+    ...(method === 'courier' ? { rider: null, riderId: null, riderCheck: null } : {}),
   };
   return post({ ...state, orders: [order, ...state.orders] }, 'Buyer wallet', 'Escrow holding', order.amt);
+}
+
+// OPTIONAL: attach an iCOLMS-GH-verified rider to a rider-delivery order. Nothing
+// in SafePay depends on this; orders work without it. `check` is the iCOLMS-GH
+// result the server just fetched. A rider who fails any check is never attached,
+// so the badge in the app always means "verified".
+export function assignRider(state, id, check) {
+  const o = getOrder(state, id);
+  if (o.method !== 'courier') throw new EngineError('This order is not a rider delivery.');
+  if (!['escrow', 'sent'].includes(o.status)) throw new EngineError('A rider can only be attached while the order is open.');
+  if (!check || !check.found) throw new EngineError('Rider not found in iCOLMS-GH.');
+  if (!check.verified) throw new EngineError(check.message);
+  const r = check.rider;
+  return updateOrder(state, id, (x) => ({
+    ...x,
+    rider: `${r.fullName} (iCOLMS-GH)`,
+    riderId: r.licenceNo,
+    riderCheck: {
+      verifiedAt: check.checkedAt, licenceNo: r.licenceNo, name: r.fullName,
+      plate: r.vehicle.plate, vehicle: r.vehicle.make, expires: r.expires,
+      company: r.company, source: check.source,
+    },
+  }));
 }
 
 export function markSent(state, id, by) {
